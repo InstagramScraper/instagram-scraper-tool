@@ -58,7 +58,7 @@ class InstagramScraper:
             username_box.send_keys(username)
             password_box.clear()
             password_box.send_keys(password)
-            WebDriverWait(self.driver, 2).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))).click()
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[type='submit']"))).click()
             self.notNow()
             return True
         except:
@@ -67,7 +67,10 @@ class InstagramScraper:
     def notNow(self):
         ''' '''      
         WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//button[contains(text(), "Not Now")]'))).click()
-        WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//button[contains(text(), "Not Now")]'))).click()
+        try:
+            WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//button[contains(text(), "Not Now")]'))).click()
+        except:
+            pass
 
     def clean(self):
         self.all_posts_comments=[]
@@ -94,7 +97,7 @@ class InstagramScraper:
         if page_name!=None:
             self.openInstagramPage(page_name)
         time.sleep(3)
-        if limit == None:
+        if (limit == None or limit>self.getNumberOfPosts()):
             limit = self.getNumberOfPosts()
         posts_urls =list()
         while (len(posts_urls) < limit):
@@ -134,8 +137,18 @@ class InstagramScraper:
         text = self.getPageBody(post_url+"?__a=1&max_id=endcursor")
         data = json.loads(text)
         post_data = dict()
-        post_data["caption"] = data["graphql"]["shortcode_media"]["edge_media_to_caption"]["edges"][0]["node"]["text"]
-        post_data["hashtags"] = [ w for w in post_data["caption"].split(" ") if w[0]=="#"]
+        post_data["caption"] = data["graphql"]["shortcode_media"]["edge_media_to_caption"]["edges"][0]["node"]["text"] 
+        tmp1 = []
+        for w in post_data["caption"].split(" "):
+            if len(w)>0:
+                if w[0]=="#":
+                    tmp1.append(w)
+        tmp2 = []
+        for w in post_data["caption"].split("\n"):
+            if len(w)>0:
+                if w[0]=="#":
+                    tmp2.append(w)
+        post_data["hashtags"] = list(set(tmp1+tmp2))
         post_data["number_of_comments"] = int(data["graphql"]["shortcode_media"]["edge_media_to_parent_comment"]["count"])
         post_data["is_video"] = data["graphql"]["shortcode_media"]["is_video"]
         post_data["comments"] = data["graphql"]["shortcode_media"]["edge_media_to_parent_comment"]["edges"]
@@ -172,14 +185,13 @@ class InstagramScraper:
         self.makeDir(self.output_folder + os.sep + self.currentPage)
         workbook = xlsxwriter.Workbook(self.output_folder + os.sep + self.currentPage + os.sep + output_filename_without_format + ".xlsx")
         worksheet = workbook.add_worksheet()
-        col = 0
+        row = 0
         for comments in self.all_posts_comments:
-            worksheet.write(0, col, "Comments_"+"{:06n}".format(col))
-            row = 1
+            col = 0
             for comment in comments:
                 worksheet.write(row, col, comment["node"]["text"])
-                row += 1
-            col+=1
+                col += 1
+            row+=1
         workbook.close()
 
     def saveAllCaptionsToExcel(self, output_filename_without_format):
@@ -187,15 +199,10 @@ class InstagramScraper:
         self.makeDir(self.output_folder + os.sep + self.currentPage)
         workbook = xlsxwriter.Workbook(self.output_folder + os.sep + self.currentPage + os.sep + output_filename_without_format + ".xlsx")
         worksheet = workbook.add_worksheet()
-        worksheet.write(0, 0, "Post ID")
-        worksheet.write(0, 1, "Caption")
-        row = 1
-        post_id = 0
+        row = 0
         for caption in self.all_posts_captions:
-            worksheet.write(row, 0, "{:06n}".format(post_id))
-            worksheet.write(row, 1, caption)
+            worksheet.write(row, 0, caption)
             row += 1
-            post_id +=1
         workbook.close()
     
     def saveAllHashtagsToExcel(self, output_filename_without_format):
@@ -203,14 +210,13 @@ class InstagramScraper:
         self.makeDir(self.output_folder + os.sep + self.currentPage)
         workbook = xlsxwriter.Workbook(self.output_folder + os.sep + self.currentPage + os.sep + output_filename_without_format + ".xlsx")
         worksheet = workbook.add_worksheet()
-        col = 0
+        row = 0
         for hs in self.all_posts_hashtag:
-            worksheet.write(0, col, "Hashtags_"+"{:06n}".format(col))
-            row = 1
+            col = 0
             for h in hs:
                 worksheet.write(row, col, h)
-                row += 1
-            col+=1
+                col += 1
+            row+=1
         workbook.close()
     
     def saveAllLikesToExcel(self, output_filename_without_format):
@@ -218,13 +224,9 @@ class InstagramScraper:
         self.makeDir(self.output_folder + os.sep + self.currentPage)
         workbook = xlsxwriter.Workbook(self.output_folder + os.sep + self.currentPage + os.sep + output_filename_without_format + ".xlsx")
         worksheet = workbook.add_worksheet()
-        worksheet.write(0, 0, "Post ID")
-        worksheet.write(0, 1, "#Likes")
-        row = 1
-        post_id = 0
+        row = 0
         for likes in self.all_posts_likes:
-            worksheet.write(row, 0, "{:06n}".format(post_id))
-            worksheet.write(row, 1, likes)
+            worksheet.write(row, 0, likes)
             row += 1
-            post_id +=1
         workbook.close()
+        
