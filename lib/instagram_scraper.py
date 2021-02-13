@@ -23,6 +23,7 @@ class InstagramScraper:
         self.all_posts_likes=[]
         self.all_posts_captions=[]
         self.all_posts_hashtag = []
+        self.all_posts_captions_without_hashtags = []
 
     def makeDir(self,folder_name): 
         '''Make a dir'''
@@ -137,18 +138,38 @@ class InstagramScraper:
         text = self.getPageBody(post_url+"?__a=1&max_id=endcursor")
         data = json.loads(text)
         post_data = dict()
-        post_data["caption"] = data["graphql"]["shortcode_media"]["edge_media_to_caption"]["edges"][0]["node"]["text"] 
-        tmp1 = []
-        for w in post_data["caption"].split(" "):
-            if len(w)>0:
-                if w[0]=="#":
-                    tmp1.append(w)
-        tmp2 = []
-        for w in post_data["caption"].split("\n"):
-            if len(w)>0:
-                if w[0]=="#":
-                    tmp2.append(w)
-        post_data["hashtags"] = list(set(tmp1+tmp2))
+        
+        try:
+            post_data["caption"] = data["graphql"]["shortcode_media"]["edge_media_to_caption"]["edges"][0]["node"]["text"] 
+            post_data["caption_without_hashtags"]=""
+            tmp=""
+            for w in post_data["caption"].split(" "):
+                if len(w)>0:
+                    if w[0]!="#":
+                        tmp=tmp+' '+w
+            for w in tmp.split("\n"):
+                if len(w)>0:
+                    if w[0]!="#":
+                        post_data["caption_without_hashtags"]=post_data["caption_without_hashtags"]+'\n'+w
+            
+        except:
+            post_data["caption"]=""
+            post_data["caption_without_hashtags"]=""
+
+        if post_data["caption"]!="":
+            tmp1 = []
+            for w in post_data["caption"].split(" "):
+                if len(w)>0:
+                    if w[0]=="#":
+                        tmp1.append(w)
+            tmp2 = []
+            for w in post_data["caption"].split("\n"):
+                if len(w)>0:
+                    if w[0]=="#":
+                        tmp2.append(w)
+            post_data["hashtags"] = list(set(tmp1+tmp2))
+        else:
+            post_data["hashtags"] = []
         post_data["number_of_comments"] = int(data["graphql"]["shortcode_media"]["edge_media_to_parent_comment"]["count"])
         post_data["is_video"] = data["graphql"]["shortcode_media"]["is_video"]
         post_data["comments"] = data["graphql"]["shortcode_media"]["edge_media_to_parent_comment"]["edges"]
@@ -160,6 +181,7 @@ class InstagramScraper:
         self.all_posts_likes.append(post_data["number_of_likes"])
         self.all_posts_comments.append(post_data["comments"])
         self.all_posts_captions.append(post_data["caption"])
+        self.all_posts_captions_without_hashtags.append(post_data["caption_without_hashtags"])
         self.all_posts_hashtag.append(post_data["hashtags"])
         return post_data
     
@@ -201,6 +223,17 @@ class InstagramScraper:
         worksheet = workbook.add_worksheet()
         row = 0
         for caption in self.all_posts_captions:
+            worksheet.write(row, 0, caption)
+            row += 1
+        workbook.close()
+
+    def saveAllCaptionsWithoutHashtagsToExcel(self, output_filename_without_format):
+        self.makeDir(self.output_folder)
+        self.makeDir(self.output_folder + os.sep + self.currentPage)
+        workbook = xlsxwriter.Workbook(self.output_folder + os.sep + self.currentPage + os.sep + output_filename_without_format + ".xlsx")
+        worksheet = workbook.add_worksheet()
+        row = 0
+        for caption in self.all_posts_captions_without_hashtags:
             worksheet.write(row, 0, caption)
             row += 1
         workbook.close()

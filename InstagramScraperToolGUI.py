@@ -40,56 +40,62 @@ class InstagramScraperToolGUI(QWidget):
         self.setLayout(layout)
 
     def scrape(self):
-        #self.button_run.setEnabled(False) 
-        instagram_page=self.lineEdit_page.text()
-        print( '\\'.join(__file__.split('\\')[:-1]) + "\\drivers\\chromedriver.exe")
         try:
-            isc = insta.InstagramScraper( '\\'.join(__file__.split('\\')[:-1]) + "\\drivers\\chromedriver.exe", output_folder='\\'.join(__file__.split('\\')[:-1]) + "\\output")
+            #self.button_run.setEnabled(False) 
+            instagram_page=self.lineEdit_page.text()
+            print( '\\'.join(__file__.split('\\')[:-1]) + "\\drivers\\chromedriver.exe")
+            try:
+                isc = insta.InstagramScraper( '\\'.join(__file__.split('\\')[:-1]) + "\\drivers\\chromedriver.exe", output_folder='\\'.join(__file__.split('\\')[:-1]) + "\\output")
+            except:
+                isc = insta.InstagramScraper( '\\'.join(__file__.split('\\')[:-1]) + "drivers\\chromedriver.exe", output_folder='\\'.join(__file__.split('\\')[:-1]) + "\\output")
+            r = isc.acceptCookies()
+            if (r==False):
+                print("Error accepting cookies")
+                return
+                
+            r = isc.login(self.lineEdit_username.text(),self.lineEdit_password.text())
+            if (r==False):
+                print("Login failed")
+                return
+
+            r = isc.openInstagramPage(instagram_page)
+            if (r==False):
+                print("Error opening " + instagram_page)
+                return
+
+            
+            posts_urls = isc.getPostsUrls()
+            
+            count=1
+            for post_url in posts_urls:
+                try:
+                    output_filename_without_format = "{:06n}".format(count)
+                    post_data = isc.getPostData(post_url)
+                    '''
+                    print("Caption = " + post_data["caption"])
+                    print("Number of comments = " + str(post_data["number_of_comments"]))
+                    print("Number of likes = " + str(post_data["number_of_likes"]))
+                    print("Is video = " + str(post_data["is_video"]))
+                    print("Media url = " + post_data["media_url"])
+                    print("Hashtags:")
+                    
+                    for h in post_data["hashtags"]:
+                        print(h)
+                    '''
+                    media_url = post_data["media_url"]
+                    is_video = post_data["is_video"]
+                    isc.saveMediaToFile(media_url,is_video, output_filename_without_format + "_media")    
+                    count+=1
+                except:
+                    break
+
+            isc.saveAllLikesToExcel("likes")
+            isc.saveAllCommentsToExcel("comments")
+            isc.saveAllHashtagsToExcel("hashtags")
+            isc.saveAllCaptionsToExcel("captions")
+            isc.saveAllCaptionsWithoutHashtagsToExcel("captions_without_hashtags")
         except:
-            isc = insta.InstagramScraper( '\\'.join(__file__.split('\\')[:-1]) + "drivers\\chromedriver.exe", output_folder='\\'.join(__file__.split('\\')[:-1]) + "\\output")
-        r = isc.acceptCookies()
-        if (r==False):
-            print("Error accepting cookies")
-            return
-            
-        r = isc.login(self.lineEdit_username.text(),self.lineEdit_password.text())
-        if (r==False):
-            print("Login failed")
-            return
-
-        r = isc.openInstagramPage(instagram_page)
-        if (r==False):
-            print("Error opening " + instagram_page)
-            return
-
-        
-        posts_urls = isc.getPostsUrls()
-        
-        count=1
-        for post_url in posts_urls:
-            output_filename_without_format = "{:06n}".format(count)
-            post_data = isc.getPostData(post_url)
-            '''
-            print("Caption = " + post_data["caption"])
-            print("Number of comments = " + str(post_data["number_of_comments"]))
-            print("Number of likes = " + str(post_data["number_of_likes"]))
-            print("Is video = " + str(post_data["is_video"]))
-            print("Media url = " + post_data["media_url"])
-            print("Hashtags:")
-            
-            for h in post_data["hashtags"]:
-                print(h)
-            '''
-            media_url = post_data["media_url"]
-            is_video = post_data["is_video"]
-            isc.saveMediaToFile(media_url,is_video, output_filename_without_format + "_media")    
-            count+=1
-
-        isc.saveAllLikesToExcel("likes")
-        isc.saveAllCommentsToExcel("comments")
-        isc.saveAllHashtagsToExcel("hashtags")
-        isc.saveAllCaptionsToExcel("captions")
-        
+            pass    
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
