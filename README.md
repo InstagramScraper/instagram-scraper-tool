@@ -33,7 +33,10 @@ Instagram Scraper Tool is an UNOFFICIAL, open-source tool that allows to scrape 
 
 ## Usage
 1) Run InstagramScraperToolGUI.py. This GUI will be shown:
+
 ![alt text](https://github.com/InstagramScraper/instagram-scraper-tool/blob/main/media/gui.PNG)
 
 2) Insert your login credentials and the name of an Instagram page
 3) Click the Run button
+4) Wait
+5) At the end you can find all the data in the "output" folder
